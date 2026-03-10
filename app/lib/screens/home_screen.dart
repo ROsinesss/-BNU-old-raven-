@@ -37,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  /// 并行预取所有数据（课表、成绩、考试）
+  /// 从本地缓存恢复数据（瞬间完成）
   void _prefetchAll() {
     if (_prefetched) return;
     _prefetched = true;
@@ -45,14 +45,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final schedule = context.read<ScheduleProvider>();
     final grades = context.read<GradesProvider>();
 
-    // 先从本地缓存恢复（瞬间完成）
+    // 仅从本地缓存恢复，不自动请求 API
     grades.loadFromCache();
-
-    // 每次进入都强制刷新，确保数据最新
-    schedule.fetchSchedule();
+    // 更新当前周次
     schedule.refreshSemesterInfo();
-    grades.fetchGrades();
-    grades.fetchExams();
+  }
+
+  /// 手动更新：强制从服务器拉取最新数据
+  void _refreshAll() {
+    final schedule = context.read<ScheduleProvider>();
+    final grades = context.read<GradesProvider>();
+
+    schedule.fetchSchedule(refresh: true);
+    schedule.refreshSemesterInfo();
+    grades.fetchGrades(refresh: true);
+    grades.fetchExams(refresh: true);
   }
 
   @override
@@ -78,6 +85,20 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: '更新数据',
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              _refreshAll();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('正在更新数据…'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+          ),
           if (auth.name != null)
             GestureDetector(
               onTap: () => _showProfileSheet(context, auth),

@@ -28,8 +28,9 @@ from models.schemas import Exam, ExamsResponse
 
 logger = logging.getLogger(__name__)
 
-# ---- 缓存：key = (student_id, year, semester) ----
-_exam_cache: dict[tuple[str, int, int], ExamsResponse] = {}
+# ---- 缓存：key = (student_id, year, semester)，value = (data, timestamp) ----
+_exam_cache: dict[tuple[str, int, int], tuple[ExamsResponse, float]] = {}
+_CACHE_TTL = 30 * 60  # 30 分钟过期
 
 
 def fetch_exams(session: requests.Session, student_id: str = "",
@@ -63,10 +64,14 @@ def fetch_exams(session: requests.Session, student_id: str = "",
     # 检查缓存
     cache_key = (student_id, year, semester)
     if cache_key in _exam_cache:
-        cached = _exam_cache[cache_key]
-        logger.info(f"考试数据命中缓存: {student_id} {year}/{semester}, "
-                    f"{len(cached.exams)} 条")
-        return cached
+        cached, cached_time = _exam_cache[cache_key]
+        if time.time() - cached_time < _CACHE_TTL:
+            logger.info(f"考试数据命中缓存: {student_id} {year}/{semester}, "
+                        f"{len(cached.exams)} 条")
+            return cached
+        else:
+            del _exam_cache[cache_key]
+            logger.info(f"考试缓存已过期: {student_id} {year}/{semester}")
 
     # 先访问考试安排页面建立上下文
     try:
@@ -121,7 +126,7 @@ def fetch_exams(session: requests.Session, student_id: str = "",
 
     # 写入缓存（即使为空也缓存，避免反复请求触发限制）
     if all_exams:
-        _exam_cache[cache_key] = result
+        _exam_cache[cache_key] = (result, time.time())
         logger.info(f"考试数据已缓存: {student_id} {year}/{semester}, "
                     f"{len(all_exams)} 条")
     # 空结果不缓存，下次可重试

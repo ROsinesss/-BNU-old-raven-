@@ -18,6 +18,7 @@
 
 import re
 import logging
+import time
 
 import requests
 from bs4 import BeautifulSoup
@@ -34,8 +35,9 @@ from models.schemas import Grade, GradesResponse
 
 logger = logging.getLogger(__name__)
 
-# ---- 缓存：key = (student_id, year, year_end, semester) ----
-_grades_cache: dict[tuple[str, int, int, int], GradesResponse] = {}
+# ---- 缓存：key = (student_id, year, year_end, semester)，value = (data, timestamp) ----
+_grades_cache: dict[tuple[str, int, int, int], tuple[GradesResponse, float]] = {}
+_CACHE_TTL = 30 * 60  # 30 分钟过期
 
 
 def clear_grades_cache(student_id: str = ""):
@@ -119,10 +121,14 @@ def fetch_grades(session: requests.Session, student_id: str = "",
     # 检查缓存
     cache_key = (student_id, year, year_end, semester)
     if student_id and cache_key in _grades_cache:
-        cached = _grades_cache[cache_key]
-        logger.info(f"成绩数据命中缓存: {student_id} year={year} sem={semester}, "
-                    f"{len(cached.grades)} 条")
-        return cached
+        cached, cached_time = _grades_cache[cache_key]
+        if time.time() - cached_time < _CACHE_TTL:
+            logger.info(f"成绩数据命中缓存: {student_id} year={year} sem={semester}, "
+                        f"{len(cached.grades)} 条")
+            return cached
+        else:
+            del _grades_cache[cache_key]
+            logger.info(f"成绩缓存已过期: {student_id} year={year} sem={semester}")
     # 访问 homes.html 确保上下文
     try:
         session.get(vpn_url(HOME_PATH), timeout=15)
@@ -200,7 +206,7 @@ def fetch_grades(session: requests.Session, student_id: str = "",
 
         # 写入缓存（有数据时才缓存）
         if student_id and result.grades:
-            _grades_cache[cache_key] = result
+            _grades_cache[cache_key] = (result, time.time())
             logger.info(f"成绩数据已缓存: {student_id} year={year} sem={semester}, "
                         f"{len(result.grades)} 条")
 

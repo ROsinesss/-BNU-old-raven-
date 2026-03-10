@@ -60,11 +60,10 @@ class ApiService {
 
   // ============ 课表 ============
 
-  Future<Map<String, dynamic>> getSchedule({int year = 2025, int semester = 1}) async {
-    final res = await _dio.get(ApiConfig.schedule, queryParameters: {
-      'year': year,
-      'semester': semester,
-    });
+  Future<Map<String, dynamic>> getSchedule({int year = 2025, int semester = 1, bool refresh = false}) async {
+    final params = <String, dynamic>{'year': year, 'semester': semester};
+    if (refresh) params['refresh'] = 1;
+    final res = await _dio.get(ApiConfig.schedule, queryParameters: params);
     return res.data;
   }
 
@@ -74,12 +73,11 @@ class ApiService {
     int year = 0,
     int yearEnd = 0,
     int semester = -1,
+    bool refresh = false,
   }) async {
-    final res = await _dio.get(ApiConfig.grades, queryParameters: {
-      'year': year,
-      'year_end': yearEnd,
-      'semester': semester,
-    });
+    final params = <String, dynamic>{'year': year, 'year_end': yearEnd, 'semester': semester};
+    if (refresh) params['refresh'] = 1;
+    final res = await _dio.get(ApiConfig.grades, queryParameters: params);
     return res.data;
   }
 
@@ -88,11 +86,11 @@ class ApiService {
   Future<Map<String, dynamic>> getExams({
     int year = 0,
     int semester = -1,
+    bool refresh = false,
   }) async {
-    final res = await _dio.get(ApiConfig.exams, queryParameters: {
-      'year': year,
-      'semester': semester,
-    });
+    final params = <String, dynamic>{'year': year, 'semester': semester};
+    if (refresh) params['refresh'] = 1;
+    final res = await _dio.get(ApiConfig.exams, queryParameters: params);
     return res.data;
   }
 

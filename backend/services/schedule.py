@@ -13,6 +13,7 @@
 """
 
 import re
+import time
 import base64
 import logging
 from typing import Optional
@@ -28,8 +29,9 @@ from models.schemas import Course, ScheduleSlot, ScheduleResponse
 
 logger = logging.getLogger(__name__)
 
-# ---- 缓存：key = (student_id, year, semester) ----
-_schedule_cache: dict[tuple[str, int, int], ScheduleResponse] = {}
+# ---- 缓存：key = (student_id, year, semester)，value = (data, timestamp) ----
+_schedule_cache: dict[tuple[str, int, int], tuple[ScheduleResponse, float]] = {}
+_CACHE_TTL = 30 * 60  # 30 分钟过期
 
 
 def clear_schedule_cache(student_id: str = ""):
@@ -161,10 +163,14 @@ def fetch_schedule(session: requests.Session, student_id: str = "",
     # 检查缓存
     cache_key = (student_id, year, semester)
     if student_id and cache_key in _schedule_cache:
-        cached = _schedule_cache[cache_key]
-        logger.info(f"课表数据命中缓存: {student_id} {year}/{semester}, "
-                    f"{len(cached.courses)} 门课")
-        return cached
+        cached, cached_time = _schedule_cache[cache_key]
+        if time.time() - cached_time < _CACHE_TTL:
+            logger.info(f"课表数据命中缓存: {student_id} {year}/{semester}, "
+                        f"{len(cached.courses)} 门课")
+            return cached
+        else:
+            del _schedule_cache[cache_key]
+            logger.info(f"课表缓存已过期: {student_id} {year}/{semester}")
     # 构造 params 参数（Base64 编码）
     params_raw = f"xn={year}&xq={semester}"
     params_b64 = base64.b64encode(params_raw.encode()).decode()
@@ -194,7 +200,7 @@ def fetch_schedule(session: requests.Session, student_id: str = "",
 
         # 写入缓存（有课程时才缓存）
         if student_id and result.courses:
-            _schedule_cache[cache_key] = result
+            _schedule_cache[cache_key] = (result, time.time())
             logger.info(f"课表数据已缓存: {student_id} {year}/{semester}, "
                         f"{len(result.courses)} 门课")
 

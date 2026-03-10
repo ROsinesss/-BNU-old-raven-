@@ -88,7 +88,7 @@ class ScheduleProvider extends ChangeNotifier {
   }
 
   /// 加载课表
-  Future<void> fetchSchedule({int? year, int? semester}) async {
+  Future<void> fetchSchedule({int? year, int? semester, bool refresh = false}) async {
     if (year != null) _selectedYear = year;
     if (semester != null) _selectedSemester = semester;
 
@@ -100,6 +100,7 @@ class ScheduleProvider extends ChangeNotifier {
       final data = await _api.getSchedule(
         year: _selectedYear,
         semester: _selectedSemester,
+        refresh: refresh,
       );
       _scheduleData = ScheduleData.fromJson(data);
 

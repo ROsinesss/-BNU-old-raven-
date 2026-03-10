@@ -54,7 +54,7 @@ class GradesProvider extends ChangeNotifier {
   }
 
   /// 加载成绩
-  Future<void> fetchGrades({int? year, int? yearEnd, int? semester}) async {
+  Future<void> fetchGrades({int? year, int? yearEnd, int? semester, bool refresh = false}) async {
     if (year != null) _selectedYear = year;
     if (yearEnd != null) _selectedYearEnd = yearEnd;
     if (semester != null) _selectedSemester = semester;
@@ -69,6 +69,7 @@ class GradesProvider extends ChangeNotifier {
         year: _selectedYear,
         yearEnd: _selectedYearEnd,
         semester: _selectedSemester,
+        refresh: refresh,
       );
       debugPrint('[GradesProvider] API response keys: ${data.keys.toList()}');
       debugPrint('[GradesProvider] grades count in response: ${(data['grades'] as List?)?.length ?? 'null'}');
@@ -109,7 +110,7 @@ class GradesProvider extends ChangeNotifier {
   }
 
   /// 加载考试安排
-  Future<void> fetchExams({int? year, int? semester}) async {
+  Future<void> fetchExams({int? year, int? semester, bool refresh = false}) async {
     if (year != null) _examYear = year;
     if (semester != null) _examSemester = semester;
 
@@ -121,6 +122,7 @@ class GradesProvider extends ChangeNotifier {
       final data = await _api.getExams(
         year: _examYear,
         semester: _examSemester,
+        refresh: refresh,
       );
       _examsData = ExamsData.fromJson(data);
       _loadingExams = false;

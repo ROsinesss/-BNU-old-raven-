@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends
 
 from models.schemas import GradesResponse
-from services.grades import fetch_grades
+from services.grades import fetch_grades, clear_grades_cache
 from routers.deps import get_current_session
 
 router = APIRouter(prefix="/api", tags=["成绩"])
@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api", tags=["成绩"])
 
 @router.get("/grades", response_model=GradesResponse)
 async def get_grades(year: int = 0, year_end: int = 0, semester: int = -1,
+                     refresh: int = 0,
                      session_info=Depends(get_current_session)):
     """
     获取成绩
@@ -20,9 +21,13 @@ async def get_grades(year: int = 0, year_end: int = 0, semester: int = -1,
     - year: 学年起始年份，0=全部
     - year_end: 学年结束年份
     - semester: -1=全部, 0=秋季, 1=春季
+    - refresh: 1=强制刷新缓存
     """
     session = session_info["session"]
     student_id = session_info["student_id"]
+    
+    if refresh:
+        clear_grades_cache(student_id)
     
     result = fetch_grades(session, student_id=student_id,
                           year=year, year_end=year_end, semester=semester)
