@@ -48,7 +48,7 @@ class ScheduleProvider extends ChangeNotifier {
         _semesterStart = DateTime.parse(startStr);
       }
       final week = semCached['current_week'] as int? ?? 0;
-      if (week > 0) _currentWeek = week.clamp(1, 25);
+      if (week > 0) _currentWeek = week.clamp(1, 20);
     }
   }
 
@@ -83,7 +83,7 @@ class ScheduleProvider extends ChangeNotifier {
 
   /// 切换周次
   void setWeek(int week) {
-    _currentWeek = week.clamp(1, 25);
+    _currentWeek = week.clamp(1, 20);
     notifyListeners();
   }
 
@@ -149,7 +149,7 @@ class ScheduleProvider extends ChangeNotifier {
       }
 
       if (serverWeek > 0) {
-        _currentWeek = serverWeek.clamp(1, 25);
+        _currentWeek = serverWeek.clamp(1, 20);
         debugPrint('[ScheduleProvider] 当前教学周: $_currentWeek');
       } else {
         _calculateCurrentWeek();
@@ -170,7 +170,7 @@ class ScheduleProvider extends ChangeNotifier {
       final diff = now.difference(_semesterStart!).inDays;
       if (diff >= 0) {
         _currentWeek = (diff ~/ 7) + 1;
-        _currentWeek = _currentWeek.clamp(1, 25);
+        _currentWeek = _currentWeek.clamp(1, 20);
       } else {
         _currentWeek = 1;
       }

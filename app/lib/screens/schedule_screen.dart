@@ -138,7 +138,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               _weekArrowButton(
                 icon: Icons.chevron_right_rounded,
-                onTap: provider.currentWeek < 25
+                onTap: provider.currentWeek < 20
                     ? () {
                         HapticFeedback.selectionClick();
                         provider.setWeek(provider.currentWeek + 1);
@@ -273,7 +273,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                 ),
-                itemCount: 25,
+                itemCount: 20,
                 itemBuilder: (_, i) {
                   final week = i + 1;
                   final isCurrent = week == provider.currentWeek;
