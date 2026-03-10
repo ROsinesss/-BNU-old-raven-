@@ -48,17 +48,11 @@ class _HomeScreenState extends State<HomeScreen> {
     // 先从本地缓存恢复（瞬间完成）
     grades.loadFromCache();
 
-    // 并行发起所有 API 请求
-    if (schedule.scheduleData == null ||
-        schedule.scheduleData!.courses.isEmpty) {
-      schedule.fetchSchedule();
-    }
-    if (grades.gradesData == null) {
-      grades.fetchGrades();
-    }
-    if (grades.examsData == null) {
-      grades.fetchExams();
-    }
+    // 每次进入都强制刷新，确保数据最新
+    schedule.fetchSchedule();
+    schedule.refreshSemesterInfo();
+    grades.fetchGrades();
+    grades.fetchExams();
   }
 
   @override

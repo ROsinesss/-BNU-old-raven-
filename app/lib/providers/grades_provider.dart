@@ -83,14 +83,25 @@ class GradesProvider extends ChangeNotifier {
     } catch (e, stack) {
       debugPrint('[GradesProvider] fetchGrades error: $e');
       debugPrint('[GradesProvider] stack: $stack');
-      // 友好错误信息
-      final msg = e.toString();
-      if (msg.contains('401') || msg.contains('过期') || msg.contains('重新登录')) {
-        _gradesError = '会话已过期，请重新登录';
-      } else if (msg.contains('Connection') || msg.contains('timeout') || msg.contains('SocketException')) {
-        _gradesError = '网络连接失败，请检查后端服务';
-      } else {
-        _gradesError = '获取成绩失败';
+      // API 失败时回退到缓存，确保用户仍可看到旧数据
+      if (_gradesData == null) {
+        final gKey = CacheService.gradesKey(_selectedYear, _selectedYearEnd, _selectedSemester);
+        final gCached = _cache.get(gKey);
+        if (gCached != null) {
+          _gradesData = GradesData.fromJson(gCached);
+          debugPrint('[GradesProvider] API失败，从缓存恢复 ${_gradesData?.grades.length} 条成绩');
+        }
+      }
+      // 有缓存数据时不显示错误
+      if (_gradesData == null) {
+        final msg = e.toString();
+        if (msg.contains('401') || msg.contains('过期') || msg.contains('重新登录')) {
+          _gradesError = '会话已过期，请重新登录';
+        } else if (msg.contains('Connection') || msg.contains('timeout') || msg.contains('SocketException')) {
+          _gradesError = '网络连接失败，请检查后端服务';
+        } else {
+          _gradesError = '获取成绩失败';
+        }
       }
       _loadingGrades = false;
       notifyListeners();
@@ -119,7 +130,16 @@ class GradesProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      _examsError = '获取考试安排失败';
+      // API 失败时回退到缓存
+      if (_examsData == null) {
+        final eKey = CacheService.examsKey(_examYear, _examSemester);
+        final eCached = _cache.get(eKey);
+        if (eCached != null) {
+          _examsData = ExamsData.fromJson(eCached);
+          debugPrint('[GradesProvider] API失败，从缓存恢复 ${_examsData?.exams.length} 条考试');
+        }
+      }
+      _examsError = _examsData == null ? '获取考试安排失败' : null;
       _loadingExams = false;
       notifyListeners();
     }

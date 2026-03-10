@@ -83,7 +83,7 @@ class ScheduleProvider extends ChangeNotifier {
 
   /// 切换周次
   void setWeek(int week) {
-    _currentWeek = week.clamp(1, 20);
+    _currentWeek = week.clamp(1, 25);
     notifyListeners();
   }
 
@@ -112,10 +112,25 @@ class ScheduleProvider extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = '获取课表失败';
+      // API 失败时回退到缓存，确保用户仍可看到数据
+      if (_scheduleData == null) {
+        final key = CacheService.scheduleKey(_selectedYear, _selectedSemester);
+        final cached = _cache.get(key);
+        if (cached != null) {
+          _scheduleData = ScheduleData.fromJson(cached);
+          debugPrint('[ScheduleProvider] API失败，从缓存恢复 ${_scheduleData?.courses.length} 门课');
+        }
+      }
+      _error = _scheduleData == null ? '获取课表失败' : null;
       _loading = false;
       notifyListeners();
     }
+  }
+
+  /// 刷新学期信息（当前周次），可从外部调用
+  Future<void> refreshSemesterInfo() async {
+    await _fetchSemesterInfo();
+    notifyListeners();
   }
 
   /// 从后端获取学期信息（当前周次、学期开始日期）
@@ -155,7 +170,7 @@ class ScheduleProvider extends ChangeNotifier {
       final diff = now.difference(_semesterStart!).inDays;
       if (diff >= 0) {
         _currentWeek = (diff ~/ 7) + 1;
-        _currentWeek = _currentWeek.clamp(1, 20);
+        _currentWeek = _currentWeek.clamp(1, 25);
       } else {
         _currentWeek = 1;
       }
